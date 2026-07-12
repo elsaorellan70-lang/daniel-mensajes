@@ -18,6 +18,11 @@
             <div class="input-group">
                 <input type="text" id="username-input" placeholder="Tu nombre de usuario..." maxlength="20" autocomplete="off">
             </div>
+            <!-- 🆕 NUEVO: Checkbox recordar usuario -->
+            <label class="remember-me">
+                <input type="checkbox" id="remember-checkbox" checked>
+                <span>Recordar mi nombre en este dispositivo</span>
+            </label>
             <button class="btn-primary" id="join-btn">
                 Entrar al Chat 🚀
             </button>
@@ -56,7 +61,11 @@
 
             <div id="active-chat">
                 <div class="chat-header">
-                    <button class="mobile-back" id="mobile-back">←</button>
+                    <!-- 🆕 NUEVO: Botón Salir (reemplaza mobile-back) -->
+                    <button class="exit-btn" id="exit-btn">
+                        <span class="exit-arrow">←</span>
+                        <span class="exit-text">Salir</span>
+                    </button>
                     <div class="room-icon" id="chat-room-icon">💬</div>
                     <div class="chat-header-info">
                         <h3 id="chat-room-name"></h3>
@@ -93,9 +102,34 @@
             <div class="input-group">
                 <input type="text" id="room-icon-input" placeholder="Emoji (ej: 🎮 🎵 💻)" maxlength="2">
             </div>
+            <!-- 🆕 NUEVO: Toggle sala privada -->
+            <label class="private-toggle">
+                <input type="checkbox" id="room-private-input">
+                <span>🔒 Sala privada (protegida con contraseña)</span>
+            </label>
+            <div class="input-group password-group" id="password-group" style="display:none;">
+                <input type="text" id="room-password-input" placeholder="Contraseña (4 dígitos)" maxlength="4" inputmode="numeric">
+                <small class="input-hint">Solo números. De 4 dígitos.</small>
+            </div>
             <div class="modal-actions">
                 <button class="btn-cancel" id="btn-cancel">Cancelar</button>
                 <button class="btn-confirm" id="btn-confirm">Crear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 NUEVO: Modal para pedir contraseña al entrar a sala privada -->
+    <div class="modal-overlay" id="password-modal">
+        <div class="modal">
+            <h3>🔒 Sala Privada</h3>
+            <p class="modal-subtitle">Esta sala está protegida. Ingresa la contraseña de 4 dígitos.</p>
+            <div class="input-group">
+                <input type="text" id="enter-password-input" placeholder="••••" maxlength="4" inputmode="numeric" autocomplete="off">
+                <small class="input-hint error-hint" id="password-error" style="display:none;">Contraseña incorrecta</small>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="password-cancel">Cancelar</button>
+                <button class="btn-confirm" id="password-confirm">Entrar</button>
             </div>
         </div>
     </div>

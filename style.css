@@ -1,4 +1,11 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ============================================= */
+/* RESET Y VARIABLES                              */
+/* ============================================= */
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
 
 :root {
     --bg-primary: #0a0a0f;
@@ -20,27 +27,37 @@
     --scrollbar: #2a2a45;
 }
 
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
 body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
-    height: 100vh;
-    overflow: hidden;
 }
 
-/* ===== SCROLLBAR ===== */
+/* ============================================= */
+/* SCROLLBAR                                      */
+/* ============================================= */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-/* ===== LOGIN ===== */
+/* ============================================= */
+/* PANTALLA DE LOGIN                              */
+/* ============================================= */
 #login-screen {
+    position: fixed;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100vh;
     background: radial-gradient(ellipse at 50% 0%, rgba(108,92,231,0.15) 0%, transparent 60%), var(--bg-primary);
+    z-index: 1000;
 }
 
 .login-container {
@@ -117,13 +134,42 @@ body {
 .btn-primary:active { transform: translateY(0); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 8px 0 16px;
+    cursor: pointer;
+    justify-content: center;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
 .login-footer { margin-top: 16px; font-size: 11px; color: var(--text-muted); }
 
-/* ===== MAIN APP ===== */
-#app { display: none; height: 100vh; flex-direction: row; }
+/* ============================================= */
+/* APLICACIÓN PRINCIPAL                           */
+/* ============================================= */
+#app {
+    display: none;
+    position: fixed;
+    inset: 0;
+    flex-direction: row;
+    background: var(--bg-primary);
+}
+
 #app.active { display: flex; }
 
-/* ===== SIDEBAR ===== */
+/* ============================================= */
+/* SIDEBAR (lista de salas)                       */
+/* ============================================= */
 .sidebar {
     width: 320px;
     background: var(--bg-secondary);
@@ -131,6 +177,7 @@ body {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    height: 100%;
 }
 
 .sidebar-header {
@@ -139,6 +186,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .sidebar-header h2 {
@@ -159,7 +207,7 @@ body {
     font-size: 13px;
 }
 
-.user-badge .dot, .online-count .dot {
+.user-badge .dot {
     width: 8px;
     height: 8px;
     background: var(--green);
@@ -167,7 +215,12 @@ body {
     box-shadow: 0 0 8px var(--green-glow);
 }
 
-.rooms-list { flex: 1; overflow-y: auto; padding: 12px; }
+.rooms-list { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 12px; 
+    min-height: 0;
+}
 
 .room-item {
     display: flex;
@@ -212,6 +265,13 @@ body {
 .room-meta { text-align: right; flex-shrink: 0; }
 .room-time { font-size: 11px; color: var(--text-muted); }
 
+.private-badge {
+    display: inline-block;
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
 .add-room-btn {
     margin: 12px;
     padding: 14px;
@@ -226,6 +286,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .add-room-btn:hover {
@@ -234,15 +295,68 @@ body {
     background: rgba(108,92,231,0.05);
 }
 
-/* ===== CHAT AREA ===== */
+/* ============================================= */
+/* ÁREA DE CHAT (ocupa el resto del espacio)      */
+/* ============================================= */
 .chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     background: var(--bg-primary);
     min-width: 0;
+    height: 100%;
+    position: relative;
 }
 
+/* Estado vacío cuando no hay sala seleccionada */
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    gap: 12px;
+    padding: 20px;
+}
+
+.empty-state .icon { font-size: 64px; opacity: 0.3; }
+.empty-state h3 { font-size: 20px; color: var(--text-secondary); }
+.empty-state p { font-size: 14px; }
+
+/* ============================================= */
+/* CHAT ACTIVO (oculto por defecto)               */
+/* ============================================= */
+#active-chat {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    inset: 0;
+}
+
+#active-chat.active {
+    display: flex;
+}
+
+/* Barra de conexión */
+.connection-bar {
+    background: var(--red);
+    color: white;
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+    display: none;
+}
+
+.connection-bar.show { display: block; }
+
+/* ============================================= */
+/* CABECERA DEL CHAT                              */
+/* ============================================= */
 .chat-header {
     padding: 16px 24px;
     background: var(--bg-secondary);
@@ -250,21 +364,24 @@ body {
     display: flex;
     align-items: center;
     gap: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
 }
 
-.chat-header .room-icon { width: 40px; height: 40px; font-size: 18px; }
+.chat-header .room-icon { 
+    width: 40px; 
+    height: 40px; 
+    font-size: 18px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-header-info { flex: 1; min-width: 0; }
 .chat-header-info h3 { font-size: 16px; font-weight: 600; }
 .chat-header-info p { font-size: 12px; color: var(--text-muted); }
-
-.mobile-back {
-    display: none;
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    font-size: 20px;
-    cursor: pointer;
-    padding: 4px 8px;
-}
 
 .online-count {
     margin-left: auto;
@@ -273,28 +390,86 @@ body {
     gap: 6px;
     font-size: 13px;
     color: var(--green);
+    flex-shrink: 0;
 }
 
-.online-count .dot { animation: blink 1.5s infinite; }
+.online-count .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+}
 
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
 }
 
-/* ===== MESSAGES ===== */
+/* Botón salir */
+.exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.exit-btn:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+    transform: translateX(-2px);
+    box-shadow: 0 4px 12px rgba(225, 112, 85, 0.3);
+}
+
+.exit-btn:active { transform: translateX(0); }
+
+.exit-arrow { font-size: 18px; line-height: 1; }
+.exit-text { font-size: 13px; }
+
+.mobile-back { display: none; }
+
+/* ============================================= */
+/* CONTENEDOR DE MENSAJES (¡LA CLAVE!)            */
+/* ============================================= */
 .messages-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 20px 24px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-height: 0; /* IMPORTANTE para flex */
+    background: var(--bg-primary);
+    position: relative;
+    z-index: 1;
 }
 
-.msg-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.msg-group { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 2px; 
+    margin-bottom: 8px; 
+    animation: msgIn 0.3s ease;
+}
+
 .msg-group.own { align-items: flex-end; }
 .msg-group.other { align-items: flex-start; }
+
+@keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .msg-sender {
     font-size: 12px;
@@ -314,12 +489,6 @@ body {
     line-height: 1.5;
     word-wrap: break-word;
     position: relative;
-    animation: msgIn 0.3s ease;
-}
-
-@keyframes msgIn {
-    from { opacity: 0; transform: translateY(10px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .msg-group.own .msg-bubble {
@@ -335,10 +504,20 @@ body {
     border-bottom-left-radius: 6px;
 }
 
-.msg-time { font-size: 10px; color: var(--text-muted); padding: 0 12px; margin-top: 2px; }
+.msg-time { 
+    font-size: 10px; 
+    color: var(--text-muted); 
+    padding: 0 12px; 
+    margin-top: 2px; 
+}
+
 .msg-group.own .msg-time { text-align: right; }
 
-.date-divider { text-align: center; margin: 16px 0; position: relative; }
+.date-divider { 
+    text-align: center; 
+    margin: 16px 0; 
+    position: relative; 
+}
 
 .date-divider span {
     background: var(--bg-primary);
@@ -357,9 +536,13 @@ body {
     padding: 4px 24px;
     min-height: 24px;
     font-style: italic;
+    flex-shrink: 0;
+    background: var(--bg-primary);
 }
 
-/* ===== INPUT ===== */
+/* ============================================= */
+/* ÁREA DE ENTRADA DE MENSAJES                    */
+/* ============================================= */
 .input-area {
     padding: 16px 24px;
     background: var(--bg-secondary);
@@ -367,9 +550,15 @@ body {
     display: flex;
     gap: 12px;
     align-items: flex-end;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
 }
 
-.msg-input-wrapper { flex: 1; position: relative; }
+.msg-input-wrapper { 
+    flex: 1; 
+    position: relative; 
+}
 
 .msg-input {
     width: 100%;
@@ -407,7 +596,11 @@ body {
     flex-shrink: 0;
 }
 
-.send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 15px var(--accent-glow); }
+.send-btn:hover { 
+    transform: scale(1.05); 
+    box-shadow: 0 4px 15px var(--accent-glow); 
+}
+
 .send-btn:active { transform: scale(0.95); }
 
 .emoji-btn {
@@ -422,7 +615,10 @@ body {
     flex-shrink: 0;
 }
 
-.emoji-btn:hover { border-color: var(--accent); background: rgba(108,92,231,0.1); }
+.emoji-btn:hover { 
+    border-color: var(--accent); 
+    background: rgba(108,92,231,0.1); 
+}
 
 .emoji-picker {
     display: none;
@@ -459,37 +655,23 @@ body {
 
 .emoji-grid span:hover { background: var(--bg-tertiary); }
 
-/* ===== EMPTY STATE ===== */
-.empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    gap: 12px;
-}
-
-.empty-state .icon { font-size: 64px; opacity: 0.3; }
-.empty-state h3 { font-size: 20px; color: var(--text-secondary); }
-.empty-state p { font-size: 14px; }
-
-#active-chat { display: none; flex-direction: column; height: 100%; }
-#active-chat.active { display: flex; }
-
-/* ===== MODAL ===== */
+/* ============================================= */
+/* MODALES                                        */
+/* ============================================= */
 .modal-overlay {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.7);
     backdrop-filter: blur(4px);
-    z-index: 200;
+    z-index: 2000;
     align-items: center;
     justify-content: center;
 }
 
-.modal-overlay.show { display: flex; }
+.modal-overlay.show { 
+    display: flex; 
+}
 
 .modal {
     background: var(--bg-card);
@@ -501,10 +683,24 @@ body {
     animation: fadeUp 0.3s ease;
 }
 
-.modal h3 { font-size: 20px; margin-bottom: 20px; text-align: center; }
-.modal .input-group { margin-bottom: 12px; }
+.modal h3 { 
+    font-size: 20px; 
+    margin-bottom: 20px; 
+    text-align: center; 
+}
 
-.modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+.modal-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.modal-actions { 
+    display: flex; 
+    gap: 12px; 
+    margin-top: 20px; 
+}
 
 .modal-actions button {
     flex: 1;
@@ -532,7 +728,67 @@ body {
 
 .btn-confirm:hover { box-shadow: 0 4px 15px var(--accent-glow); }
 
-/* ===== NOTIFICATION ===== */
+/* Modal contraseña */
+.private-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin: 12px 0;
+    cursor: pointer;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.private-toggle:hover { background: rgba(108,92,231,0.1); }
+
+.private-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.input-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    padding: 0 4px;
+}
+
+.error-hint {
+    color: var(--red) !important;
+    font-weight: 600;
+}
+
+#password-modal .input-group input {
+    text-align: center;
+    font-size: 24px;
+    letter-spacing: 12px;
+    font-family: monospace;
+    padding-left: 20px;
+}
+
+#enter-password-input::-webkit-outer-spin-button,
+#enter-password-input::-webkit-inner-spin-button,
+#room-password-input::-webkit-outer-spin-button,
+#room-password-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#enter-password-input,
+#room-password-input {
+    -moz-appearance: textfield;
+}
+
+/* ============================================= */
+/* NOTIFICACIONES                                 */
+/* ============================================= */
 .notification {
     position: fixed;
     top: 20px;
@@ -542,7 +798,7 @@ body {
     border-left: 4px solid var(--accent);
     border-radius: 12px;
     padding: 14px 20px;
-    z-index: 300;
+    z-index: 3000;
     animation: slideIn 0.3s ease, slideOut 0.3s ease 2.7s forwards;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     max-width: 320px;
@@ -561,32 +817,215 @@ body {
     to { opacity: 0; transform: translateX(100px); }
 }
 
-/* ===== CONNECTION BAR ===== */
-.connection-bar {
-    display: none;
-    background: var(--red);
-    color: white;
-    text-align: center;
-    padding: 8px;
-    font-size: 12px;
+/* ============================================= */
+/* RESPONSIVE (MÓVIL)                             */
+/* ============================================= */
+@media (max-width: 768px) {
+    .sidebar {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        z-index: 10;
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar.hidden { 
+        transform: translateX(-100%); 
+        pointer-events: none;
+    }
+
+    .chat-area {
+        width: 100%;
+    }
+
+    .msg-bubble { max-width: 85%; }
+    
+    .emoji-picker { width: 280px; }
+
+    .exit-btn {
+        padding: 10px 16px;
+        font-size: 15px;
+        background: linear-gradient(135deg, var(--red), #d63031);
+        border-color: transparent;
+        color: white;
+    }
+    
+    .exit-btn:hover {
+        background: linear-gradient(135deg, #d63031, #c0392b);
+    }
+
+    .chat-header {
+        padding: 12px 16px;
+    }
+
+    .messages-container {
+        padding: 12px 16px;
+    }
+
+    .input-area {
+        padding: 12px 16px;
+    }
+}
+
+/* ============================================= */
+/* UTILIDADES                                     */
+/* ============================================= */
+.hidden { display: none !important; }
+
+/* ============================================= */
+/* 🆕 NUEVOS ESTILOS (NO BORRAR LOS ANTERIORES)   */
+/* ============================================= */
+
+/* Checkbox recordar usuario */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 8px 0 16px;
+    cursor: pointer;
+    justify-content: center;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* Toggle sala privada */
+.private-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin: 12px 0;
+    cursor: pointer;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.private-toggle:hover {
+    background: rgba(108,92,231,0.1);
+}
+
+.private-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.password-group {
+    margin-top: 8px;
+}
+
+.input-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    padding: 0 4px;
+}
+
+.error-hint {
+    color: var(--red) !important;
     font-weight: 600;
 }
 
-.connection-bar.show { display: block; }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        inset: 0;
-        width: 100%;
-        z-index: 50;
-        transform: translateX(0);
-        transition: transform 0.3s;
-    }
-
-    .sidebar.hidden { transform: translateX(-100%); }
-    .mobile-back { display: block; }
-    .msg-bubble { max-width: 85%; }
-    .emoji-picker { width: 280px; }
+.modal-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
 }
+
+#password-modal .input-group input {
+    text-align: center;
+    font-size: 24px;
+    letter-spacing: 12px;
+    font-family: monospace;
+    padding-left: 20px;
+}
+
+#enter-password-input::-webkit-outer-spin-button,
+#enter-password-input::-webkit-inner-spin-button,
+#room-password-input::-webkit-outer-spin-button,
+#room-password-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#enter-password-input,
+#room-password-input {
+    -moz-appearance: textfield;
+}
+
+/* Indicador de candado en salas privadas */
+.private-badge {
+    display: inline-block;
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+/* 🆕 Botón Salir (reemplaza mobile-back) */
+.exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.exit-btn:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+    transform: translateX(-2px);
+    box-shadow: 0 4px 12px rgba(225, 112, 85, 0.3);
+}
+
+.exit-btn:active {
+    transform: translateX(0);
+}
+
+.exit-arrow {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.exit-text {
+    font-size: 13px;
+}
+
+/* En móvil, hacer el botón más grande y visible */
+@media (max-width: 768px) {
+    .exit-btn {
+        padding: 10px 16px;
+        font-size: 15px;
+        background: linear-gradient(135deg, var(--red), #d63031);
+        border-color: transparent;
+        color: white;
+    }
+    
+    .exit-btn:hover {
+        background: linear-gradient(135deg, #d63031, #c0392b);
+    }
+}
+
+/* Ocultar el viejo botón mobile-back */
+.mobile-back { display: none !important; }

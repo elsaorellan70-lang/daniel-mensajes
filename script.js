@@ -35,7 +35,6 @@ const firebaseConfig = {
     measurementId: "G-83F307F1TK"
 };
 
-// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
@@ -50,6 +49,7 @@ let typingUnsubscribe = null;
 let typingTimeout = null;
 let roomsData = {};
 let previousMsgCount = 0;
+let pendingPrivateRoomId = null; // 🆕 NUEVO
 
 const DEFAULT_ROOMS = [
     { id: 'general', name: 'General', icon: '🌍', color: '#6c5ce7' },
@@ -114,11 +114,49 @@ function playNotifSound() {
     } catch(e) {}
 }
 
+// 🆕 NUEVO: Hash de contraseñas
+async function hashPassword(password) {
+    const msgBuffer = new TextEncoder().encode(password + '_salt_chatapp_2026');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPassword(inputPassword, storedHash) {
+    const inputHash = await hashPassword(inputPassword);
+    return inputHash === storedHash;
+}
+
 // =============================================
-// LOGIN
+// 🆕 NUEVO: GUARDAR/RECUPERAR USERNAME (localStorage)
+// =============================================
+const STORAGE_KEY_USERNAME = 'chatapp_username';
+
+function saveUsername(name) {
+    try { localStorage.setItem(STORAGE_KEY_USERNAME, name); } catch(e) {}
+}
+
+function loadSavedUsername() {
+    try { return localStorage.getItem(STORAGE_KEY_USERNAME) || ''; } catch(e) { return ''; }
+}
+
+function clearSavedUsername() {
+    try { localStorage.removeItem(STORAGE_KEY_USERNAME); } catch(e) {}
+}
+
+// =============================================
+// LOGIN (actualizado con localStorage)
 // =============================================
 const usernameInput = document.getElementById('username-input');
 const joinBtn = document.getElementById('join-btn');
+const rememberCheckbox = document.getElementById('remember-checkbox'); // 🆕
+
+// Cargar nombre guardado al iniciar
+const savedName = loadSavedUsername();
+if (savedName) {
+    usernameInput.value = savedName;
+    if (rememberCheckbox) rememberCheckbox.checked = true;
+}
 
 usernameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') joinChat();
@@ -133,6 +171,13 @@ async function joinChat() {
         usernameInput.style.borderColor = 'var(--red)';
         setTimeout(() => usernameInput.style.borderColor = '', 1500);
         return;
+    }
+
+    // 🆕 Guardar o no el nombre
+    if (rememberCheckbox && rememberCheckbox.checked) {
+        saveUsername(name);
+    } else {
+        clearSavedUsername();
     }
 
     joinBtn.disabled = true;
@@ -179,7 +224,6 @@ function setupPresence() {
         }
     });
 
-    // Contador de usuarios online
     const presenceRef = ref(db, 'presence');
     onValue(presenceRef, (snap) => {
         const count = snap.numChildren() || 0;
@@ -187,7 +231,6 @@ function setupPresence() {
         if (el) el.textContent = count;
     });
 
-    // Barra de conexión
     onValue(connectedRef, (snap) => {
         const bar = document.getElementById('connection-bar');
         if (!snap.val()) bar.classList.add('show');
@@ -196,10 +239,9 @@ function setupPresence() {
 }
 
 // =============================================
-// SALAS
+// SALAS (actualizado con privadas)
 // =============================================
 async function loadRooms() {
-    // Crear salas por defecto si no existen
     for (const room of DEFAULT_ROOMS) {
         const roomRef = ref(db, `rooms/${room.id}`);
         const snap = await get(roomRef);
@@ -208,13 +250,13 @@ async function loadRooms() {
                 name: room.name,
                 icon: room.icon,
                 color: room.color,
+                private: false, // 🆕
                 createdBy: 'system',
                 createdAt: serverTimestamp()
             });
         }
     }
 
-    // Escuchar todas las salas
     const roomsRef = ref(db, 'rooms');
     onValue(roomsRef, (snap) => {
         roomsData = snap.val() || {};
@@ -229,13 +271,15 @@ function renderRooms() {
     container.innerHTML = roomEntries.map(([id, room]) => {
         const isActive = currentRoom === id;
         const bg = room.color || '#6c5ce7';
+        const isPrivate = room.private === true; // 🆕
+        const lockIcon = isPrivate ? '<span class="private-badge">🔒</span>' : ''; // 🆕
         return `
             <div class="room-item ${isActive ? 'active' : ''}" onclick="window.openRoom('${id}')">
                 <div class="room-icon" style="background:${bg}22; color:${bg};">
                     ${room.icon || '💬'}
                 </div>
                 <div class="room-info">
-                    <div class="room-name">${escapeHtml(room.name)}</div>
+                    <div class="room-name">${escapeHtml(room.name)} ${lockIcon}</div>
                     <div class="room-preview">${escapeHtml(room.lastMessage || 'Sin mensajes aún')}</div>
                 </div>
                 <div class="room-meta">
@@ -246,10 +290,24 @@ function renderRooms() {
     }).join('');
 }
 
-// Exponer al window para el onclick en HTML
 window.openRoom = openRoom;
 
 function openRoom(roomId) {
+    const room = roomsData[roomId];
+    if (!room) return;
+
+    // 🆕 Si es privada, pedir contraseña
+    if (room.private === true) {
+        pendingPrivateRoomId = roomId;
+        showPasswordModal();
+        return;
+    }
+
+    enterRoom(roomId);
+}
+
+// 🆕 NUEVO: Función separada para entrar a la sala
+function enterRoom(roomId) {
     currentRoom = roomId;
     const room = roomsData[roomId];
     if (!room) return;
@@ -258,12 +316,13 @@ function openRoom(roomId) {
     const activeChat = document.getElementById('active-chat');
     activeChat.classList.add('active');
 
-    document.getElementById('chat-room-name').textContent = room.name;
+    const isPrivate = room.private === true;
+    const lockText = isPrivate ? ' 🔒' : '';
+    document.getElementById('chat-room-name').textContent = room.name + lockText;
     document.getElementById('chat-room-icon').textContent = room.icon || '💬';
     document.getElementById('chat-room-icon').style.background = `${room.color || '#6c5ce7'}22`;
-    document.getElementById('chat-room-members').textContent = 'Sala de chat';
+    document.getElementById('chat-room-members').textContent = isPrivate ? 'Sala privada' : 'Sala pública';
 
-    // Mobile: ocultar sidebar
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.add('hidden');
     }
@@ -277,13 +336,112 @@ function showSidebar() {
     document.getElementById('sidebar').classList.remove('hidden');
 }
 
-document.getElementById('mobile-back').addEventListener('click', showSidebar);
+// 🆕 NUEVO: Botón salir de la sala
+const exitBtn = document.getElementById('exit-btn');
+if (exitBtn) {
+    exitBtn.addEventListener('click', exitRoom);
+}
+
+function exitRoom() {
+    // Limpiar listeners
+    if (messagesUnsubscribe) { messagesUnsubscribe(); messagesUnsubscribe = null; }
+    if (typingUnsubscribe) { typingUnsubscribe(); typingUnsubscribe = null; }
+
+    // Limpiar typing propio
+    if (currentRoom && currentUser) {
+        remove(ref(db, `typing/${currentRoom}/${currentUser.uid}`));
+    }
+
+    // Resetear estado
+    currentRoom = null;
+    previousMsgCount = 0;
+    document.getElementById('messages-container').innerHTML = '';
+    document.getElementById('typing-indicator').textContent = '';
+    const msgInput = document.getElementById('msg-input');
+    if (msgInput) {
+        msgInput.value = '';
+        msgInput.style.height = 'auto';
+    }
+
+    // Ocultar chat y mostrar empty-state
+    document.getElementById('active-chat').classList.remove('active');
+    document.getElementById('empty-state').style.display = 'flex';
+
+    // En móvil, volver a mostrar el sidebar
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.remove('hidden');
+    }
+
+    renderRooms();
+}
 
 // =============================================
-// MENSAJES
+// 🆕 NUEVO: MODAL DE CONTRASEÑA
+// =============================================
+const passwordModal = document.getElementById('password-modal');
+const enterPasswordInput = document.getElementById('enter-password-input');
+const passwordError = document.getElementById('password-error');
+
+function showPasswordModal() {
+    enterPasswordInput.value = '';
+    passwordError.style.display = 'none';
+    passwordModal.classList.add('show');
+    setTimeout(() => enterPasswordInput.focus(), 100);
+}
+
+function hidePasswordModal() {
+    passwordModal.classList.remove('show');
+    pendingPrivateRoomId = null;
+    enterPasswordInput.value = '';
+    passwordError.style.display = 'none';
+}
+
+document.getElementById('password-cancel').addEventListener('click', hidePasswordModal);
+document.getElementById('password-confirm').addEventListener('click', tryEnterPrivateRoom);
+
+enterPasswordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryEnterPrivateRoom();
+});
+
+enterPasswordInput.addEventListener('input', () => {
+    enterPasswordInput.value = enterPasswordInput.value.replace(/[^0-9]/g, '');
+    passwordError.style.display = 'none';
+});
+
+async function tryEnterPrivateRoom() {
+    if (!pendingPrivateRoomId) return;
+    const password = enterPasswordInput.value.trim();
+    const room = roomsData[pendingPrivateRoomId];
+
+    if (!room || !room.passwordHash) { hidePasswordModal(); return; }
+
+    if (password.length !== 4) {
+        passwordError.textContent = 'Deben ser 4 dígitos';
+        passwordError.style.display = 'block';
+        return;
+    }
+
+    const isValid = await verifyPassword(password, room.passwordHash);
+    if (isValid) {
+        const roomId = pendingPrivateRoomId;
+        hidePasswordModal();
+        enterRoom(roomId);
+    } else {
+        passwordError.textContent = 'Contraseña incorrecta';
+        passwordError.style.display = 'block';
+        enterPasswordInput.value = '';
+        enterPasswordInput.focus();
+    }
+}
+
+passwordModal.addEventListener('click', (e) => {
+    if (e.target.id === 'password-modal') hidePasswordModal();
+});
+
+// =============================================
+// MENSAJES (¡SIN CAMBIOS! Tu código original)
 // =============================================
 function loadMessages(roomId) {
-    // Limpiar listeners anteriores
     if (messagesUnsubscribe) messagesUnsubscribe();
     if (typingUnsubscribe) typingUnsubscribe();
 
@@ -320,7 +478,6 @@ function loadMessages(roomId) {
             appendMessage(msg, false);
         });
 
-        // Si hay mensajes nuevos y ya estábamos en la sala, reproducir sonido
         if (previousMsgCount > 0 && messages.length > previousMsgCount) {
             const newMsg = messages[messages.length - 1];
             if (newMsg.uid !== currentUser.uid) {
@@ -332,7 +489,6 @@ function loadMessages(roomId) {
         container.scrollTop = container.scrollHeight;
     });
 
-    // Typing indicator
     const typingRef = ref(db, `typing/${roomId}`);
     typingUnsubscribe = onValue(typingRef, (snap) => {
         const typingData = snap.val() || {};
@@ -368,7 +524,7 @@ function appendMessage(msg, animate = true) {
 }
 
 // =============================================
-// ENVIAR MENSAJE
+// ENVIAR MENSAJE (¡SIN CAMBIOS!)
 // =============================================
 const msgInput = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
@@ -383,7 +539,6 @@ msgInput.addEventListener('keydown', (e) => {
 });
 
 msgInput.addEventListener('input', () => {
-    // Auto resize
     msgInput.style.height = 'auto';
     msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
     handleTyping();
@@ -404,7 +559,6 @@ async function sendMessage() {
     const messagesRef = ref(db, `messages/${currentRoom}`);
     push(messagesRef, msg);
 
-    // Actualizar preview de la sala
     const preview = text.length > 40 ? text.substring(0, 40) + '...' : text;
     const now = new Date();
     const timeStr = now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -415,7 +569,6 @@ async function sendMessage() {
         lastTime: timeStr
     });
 
-    // Limpiar typing
     const typingRef = ref(db, `typing/${currentRoom}/${currentUser.uid}`);
     remove(typingRef);
 
@@ -439,7 +592,7 @@ function handleTyping() {
 }
 
 // =============================================
-// EMOJIS
+// EMOJIS (¡SIN CAMBIOS!)
 // =============================================
 function initEmojiPicker() {
     const picker = document.getElementById('emoji-picker');
@@ -467,25 +620,51 @@ document.addEventListener('click', (e) => {
 });
 
 // =============================================
-// MODAL NUEVA SALA
+// MODAL NUEVA SALA (actualizado con privadas)
 // =============================================
+const roomNameInput = document.getElementById('room-name-input');
+const roomIconInput = document.getElementById('room-icon-input');
+const roomPrivateInput = document.getElementById('room-private-input'); // 🆕
+const roomPasswordInput = document.getElementById('room-password-input'); // 🆕
+const passwordGroup = document.getElementById('password-group'); // 🆕
+
 document.getElementById('add-room-btn').addEventListener('click', () => {
     document.getElementById('modal-overlay').classList.add('show');
     document.getElementById('room-name-input').focus();
 });
 
 document.getElementById('btn-cancel').addEventListener('click', hideModal);
-
 document.getElementById('btn-confirm').addEventListener('click', createRoom);
 
 document.getElementById('room-name-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') createRoom();
 });
 
+// 🆕 NUEVO: Toggle campos de contraseña
+window.togglePrivateFields = function() {
+    if (roomPrivateInput.checked) {
+        passwordGroup.style.display = 'block';
+        setTimeout(() => roomPasswordInput.focus(), 100);
+    } else {
+        passwordGroup.style.display = 'none';
+        roomPasswordInput.value = '';
+    }
+};
+roomPrivateInput.addEventListener('change', window.togglePrivateFields);
+
+// 🆕 NUEVO: Solo números en contraseña
+roomPasswordInput.addEventListener('input', () => {
+    roomPasswordInput.value = roomPasswordInput.value.replace(/[^0-9]/g, '');
+});
+
 function hideModal() {
     document.getElementById('modal-overlay').classList.remove('show');
     document.getElementById('room-name-input').value = '';
     document.getElementById('room-icon-input').value = '';
+    // 🆕 Limpiar campos privados
+    roomPrivateInput.checked = false;
+    roomPasswordInput.value = '';
+    passwordGroup.style.display = 'none';
 }
 
 async function createRoom() {
@@ -500,26 +679,50 @@ async function createRoom() {
         return;
     }
 
+    // 🆕 Validar contraseña si es privada
+    const isPrivate = roomPrivateInput.checked;
+    const password = roomPasswordInput.value.trim();
+
+    if (isPrivate) {
+        if (password.length !== 4 || !/^\d{4}$/.test(password)) {
+            roomPasswordInput.style.borderColor = 'var(--red)';
+            setTimeout(() => roomPasswordInput.style.borderColor = '', 1500);
+            alert('La contraseña debe tener exactamente 4 dígitos numéricos.');
+            return;
+        }
+    }
+
     const roomId = name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
     const color = getRandomColor();
 
-    const roomRef = ref(db, `rooms/${roomId}`);
-    await set(roomRef, {
+    // 🆕 Construir datos de la sala
+    const roomData = {
         name: name,
         icon: icon,
         color: color,
+        private: isPrivate,
         createdBy: currentUser.name,
         createdAt: serverTimestamp(),
-        lastMessage: 'Sala creada',
+        lastMessage: isPrivate ? '🔒 Sala privada creada' : 'Sala creada',
         lastTime: new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-    });
+    };
+
+    // 🆕 Agregar hash de contraseña si es privada
+    if (isPrivate) {
+        roomData.passwordHash = await hashPassword(password);
+    }
+
+    const roomRef = ref(db, `rooms/${roomId}`);
+    await set(roomRef, roomData);
 
     hideModal();
-    showNotification('Sala creada ✅', `Se creó "${name}"`);
-    setTimeout(() => openRoom(roomId), 500);
+    showNotification(
+        'Sala creada ✅',
+        isPrivate ? `"${name}" 🔒 (contraseña: ${password})` : `Se creó "${name}"`
+    );
+    setTimeout(() => enterRoom(roomId), 500);
 }
 
-// Cerrar modal al hacer click fuera
 document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'modal-overlay') hideModal();
 });
@@ -531,4 +734,4 @@ if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
 }
 
-console.log('💬 ChatApp listo - Firebase conectado');
+console.log('💬 ChatApp v2.0 listo - Firebase conectado');

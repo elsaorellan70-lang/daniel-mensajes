@@ -1029,3 +1029,143 @@ body {
 
 /* Ocultar el viejo botón mobile-back */
 .mobile-back { display: none !important; }
+/* ============================================= */
+/* 🆕 NUEVOS ESTILOS - AGREGADOS AL FINAL        */
+/* ============================================= */
+
+/* Checkbox recordar usuario */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 8px 0 16px;
+    cursor: pointer;
+    justify-content: center;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* Toggle sala privada en modal de nueva sala */
+.private-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin: 12px 0;
+    cursor: pointer;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.private-toggle:hover { background: rgba(108,92,231,0.1); }
+
+.private-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.password-group { margin-top: 8px; }
+
+.input-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    padding: 0 4px;
+}
+
+.error-hint {
+    color: var(--red) !important;
+    font-weight: 600;
+}
+
+.modal-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Modal de contraseña */
+#password-modal .input-group input {
+    text-align: center;
+    font-size: 24px;
+    letter-spacing: 12px;
+    font-family: monospace;
+    padding-left: 20px;
+}
+
+#enter-password-input::-webkit-outer-spin-button,
+#enter-password-input::-webkit-inner-spin-button,
+#room-password-input::-webkit-outer-spin-button,
+#room-password-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#enter-password-input,
+#room-password-input { -moz-appearance: textfield; }
+
+.private-badge {
+    display: inline-block;
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+/* Botón Salir */
+.exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+.exit-btn:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+    transform: translateX(-2px);
+    box-shadow: 0 4px 12px rgba(225, 112, 85, 0.3);
+}
+
+.exit-btn:active { transform: translateX(0); }
+.exit-arrow { font-size: 18px; line-height: 1; }
+.exit-text { font-size: 13px; }
+
+/* En móvil */
+@media (max-width: 768px) {
+    .exit-btn {
+        padding: 10px 16px;
+        font-size: 15px;
+        background: linear-gradient(135deg, var(--red), #d63031);
+        border-color: transparent;
+        color: white;
+    }
+    .exit-btn:hover {
+        background: linear-gradient(135deg, #d63031, #c0392b);
+    }
+}
+
+.mobile-back { display: none !important; }
